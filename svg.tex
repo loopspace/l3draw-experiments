@@ -32,9 +32,8 @@
   \tl_set:cn {l__svg_action_#1_tl} {#1}
 }
 
-\cs_generate_variant:Nn \draw_path_moveto:n {x}
-\cs_generate_variant:Nn \draw_path_lineto:n {x}
-\cs_generate_variant:Nn \draw_path_curveto:nnn {xxx}
+\int_new:N \l__svg_points_int
+\tl_new:N \l__svg_tmpa_tl
 
 \cs_new_nopar:Npn \svg_do_action:NNN #1#2#3
 {
@@ -51,6 +50,7 @@
         {\seq_item:Nn #3 {1}}
         {\seq_item:Nn #3 {2}}
       }
+      \int_set:Nn \l__svg_points_int {2}
     }
     \l__svg_action_m_tl
     {
@@ -62,6 +62,7 @@
         {\fp_eval:n {\tl_item:Nn #1 {1} + \seq_item:Nn #3 {1}}}
         {\fp_eval:n {\tl_item:Nn #1 {2} + \seq_item:Nn #3 {2}}}
       }
+      \int_set:Nn \l__svg_points_int {2}
     }
     \l__svg_action_L_tl
     {
@@ -73,6 +74,7 @@
         {\seq_item:Nn #3 {1}}
         {\seq_item:Nn #3 {2}}
       }
+      \int_set:Nn \l__svg_points_int {2}
     }
     \l__svg_action_l_tl
     {
@@ -84,6 +86,7 @@
         {\fp_eval:n {\tl_item:Nn #1 {1} + \seq_item:Nn #3 {1}}}
         {\fp_eval:n {\tl_item:Nn #1 {2} + \seq_item:Nn #3 {2}}}
       }
+      \int_set:Nn \l__svg_points_int {2}
     }
     \l__svg_action_H_tl
     {
@@ -95,6 +98,7 @@
         {\seq_item:Nn #3 {1}}
         {\tl_item:Nn #1 {2}}
       }
+      \int_set:Nn \l__svg_points_int {1}
     }
     \l__svg_action_h_tl
     {
@@ -106,6 +110,7 @@
         {\fp_eval:n {\tl_item:Nn #1 {1} + \seq_item:Nn #3 {1}}}
         {\fp_eval:n {\tl_item:Nn #1 {2}}}
       }
+      \int_set:Nn \l__svg_points_int {1}
     }
     \l__svg_action_V_tl
     {
@@ -117,6 +122,7 @@
         {\tl_item:Nn #1 {1}}
         {\seq_item:Nn #3 {1}}
       }
+      \int_set:Nn \l__svg_points_int {1}
     }
     \l__svg_action_v_tl
     {
@@ -128,14 +134,17 @@
         {\tl_item:Nn #1 {1}}
         {\fp_eval:n {\tl_item:Nn #1 {2} + \seq_item:Nn #3 {1}}}
       }
+      \int_set:Nn \l__svg_points_int {1}
     }
     \l__svg_action_Z_tl
     {
       \draw_path_close:
+      \int_set:Nn \l__svg_points_int {0}
     }
     \l__svg_action_z_tl
     {
       \draw_path_close:
+      \int_set:Nn \l__svg_points_int {0}
     }
     \l__svg_action_Q_tl
     {
@@ -156,6 +165,7 @@
         {\seq_item:Nn #3 {3}}
         {\seq_item:Nn #3 {4}}
       }
+      \int_set:Nn \l__svg_points_int {4}
     }
     \l__svg_action_q_tl
     {
@@ -176,6 +186,7 @@
         {\fp_eval:n {\tl_item:Nn #1 {1} + \seq_item:Nn #3 {3}}}
         {\fp_eval:n {\tl_item:Nn #1 {2} + \seq_item:Nn #3 {4}}}
       }
+      \int_set:Nn \l__svg_points_int {4}
     }
     \l__svg_action_C_tl
     {
@@ -196,6 +207,7 @@
         {\seq_item:Nn #3 {5}}
         {\seq_item:Nn #3 {6}}
       }
+      \int_set:Nn \l__svg_points_int {6}
     }
     \l__svg_action_c_tl
     {
@@ -216,8 +228,10 @@
         {\fp_eval:n {\tl_item:Nn #1 {1} + \seq_item:Nn #3 {5}}}
         {\fp_eval:n {\tl_item:Nn #1 {2} + \seq_item:Nn #3 {6}}}
       }
+      \int_set:Nn \l__svg_points_int {6}
     }
   }
+  \prg_replicate:nn {\l__svg_points_int} {\seq_pop_left:NN #3 \l__svg_tmpa_tl}
 }
 
 \cs_new_nopar:Npn \draw_svg:n #1
@@ -240,7 +254,12 @@
       % Got an action, so apply previous action and reset state
       \tl_if_empty:NF \l__svg_action_tl
       {
-        \svg_do_action:NNN \l__svg_cpoint_tl \l__svg_action_tl \l__svg_points_seq
+        \bool_do_until:nn {
+          \seq_if_empty_p:N \l__svg_points_seq
+        }
+        {
+          \svg_do_action:NNN \l__svg_cpoint_tl \l__svg_action_tl \l__svg_points_seq
+        }
       }
 
       % Set the new action
@@ -316,7 +335,12 @@
   }
   \tl_if_empty:NF \l__svg_action_tl
   {
-    \svg_do_action:NNN \l__svg_cpoint_tl \l__svg_action_tl \l__svg_points_seq
+    \bool_do_until:nn {
+      \seq_if_empty_p:N \l__svg_points_seq
+    }
+    {
+      \svg_do_action:NNN \l__svg_cpoint_tl \l__svg_action_tl \l__svg_points_seq
+    }
   }
 
 }
@@ -328,7 +352,7 @@
 \ExplSyntaxOn
 \draw_begin:
 \draw_svg:n { M37,17v15H14V17z M50,0H0v50h50z  }
-\draw_svg:n { M0,0Q50,50~ 100,0 }
+\draw_svg:n { M0,0Q50,50~ 100,0~ 150,-50~ 200,0 }
 \draw_svg:n { M0,0C50,50~ 100,50~ 150,0 }
 \draw_path_use:n {stroke}
 \draw_end:
