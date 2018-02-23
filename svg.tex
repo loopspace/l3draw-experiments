@@ -21,6 +21,8 @@
 \tl_set:Nn \l__svg_minus_tl {-}
 \tl_new:N \l__svg_comma_tl
 \tl_set:Nn \l__svg_comma_tl {,}
+\tl_new:N \l__svg_semicolon_tl
+\tl_set:Nn \l__svg_semicolon_tl {;}
 \tl_new:N \l__svg_period_tl
 \tl_set:Nn \l__svg_period_tl {.}
 
@@ -32,6 +34,7 @@
 
 \cs_generate_variant:Nn \draw_path_moveto:n {x}
 \cs_generate_variant:Nn \draw_path_lineto:n {x}
+\cs_generate_variant:Nn \draw_path_curveto:nnn {xxx}
 
 \cs_new_nopar:Npn \svg_do_action:NNN #1#2#3
 {
@@ -40,7 +43,7 @@
   {
     \l__svg_action_M_tl
     {
-      \draw_path_moveto:x {
+      \draw_path_moveto:n {
         \seq_item:Nn #3 {1},
         \seq_item:Nn #3 {2}
       }
@@ -51,9 +54,9 @@
     }
     \l__svg_action_m_tl
     {
-      \draw_path_moveto:x {
-        \fp_eval:n {\tl_item:Nn #1 {1} + \seq_item:Nn #3 {1}},
-        \fp_eval:n {\tl_item:Nn #1 {2} + \seq_item:Nn #3 {2}}
+      \draw_path_moveto:n {
+        \tl_item:Nn #1 {1} + \seq_item:Nn #3 {1},
+        \tl_item:Nn #1 {2} + \seq_item:Nn #3 {2}
       }
       \tl_set:Nx #1 {
         {\fp_eval:n {\tl_item:Nn #1 {1} + \seq_item:Nn #3 {1}}}
@@ -62,7 +65,7 @@
     }
     \l__svg_action_L_tl
     {
-      \draw_path_lineto:x {
+      \draw_path_lineto:n {
         \seq_item:Nn #3 {1},
         \seq_item:Nn #3 {2}
       }
@@ -73,9 +76,9 @@
     }
     \l__svg_action_l_tl
     {
-      \draw_path_lineto:x {
-        \fp_eval:n {\tl_item:Nn #1 {1} + \seq_item:Nn #3 {1}},
-        \fp_eval:n {\tl_item:Nn #1 {2} + \seq_item:Nn #3 {2}}
+      \draw_path_lineto:n {
+        \tl_item:Nn #1 {1} + \seq_item:Nn #3 {1},
+        \tl_item:Nn #1 {2} + \seq_item:Nn #3 {2}
       }
       \tl_set:Nx #1 {
         {\fp_eval:n {\tl_item:Nn #1 {1} + \seq_item:Nn #3 {1}}}
@@ -84,7 +87,7 @@
     }
     \l__svg_action_H_tl
     {
-      \draw_path_lineto:x {
+      \draw_path_lineto:n {
         \seq_item:Nn #3 {1},
         \tl_item:Nn #1 {2}
       }
@@ -95,8 +98,8 @@
     }
     \l__svg_action_h_tl
     {
-      \draw_path_lineto:x {
-        \fp_eval:n {\tl_item:Nn #1 {1} + \seq_item:Nn #3 {1}},
+      \draw_path_lineto:n {
+        \tl_item:Nn #1 {1} + \seq_item:Nn #3 {1},
         \tl_item:Nn #1 {2}
       }
       \tl_set:Nx #1 {
@@ -106,7 +109,7 @@
     }
     \l__svg_action_V_tl
     {
-      \draw_path_lineto:x {
+      \draw_path_lineto:n {
         \tl_item:Nn #1 {1},
         \seq_item:Nn #3 {1}
       }
@@ -117,9 +120,9 @@
     }
     \l__svg_action_v_tl
     {
-      \draw_path_lineto:x {
+      \draw_path_lineto:n {
         \tl_item:Nn #1 {1},
-        \fp_eval:n {\tl_item:Nn #1 {2} + \seq_item:Nn #3 {1}}
+        \tl_item:Nn #1 {2} + \seq_item:Nn #3 {1}
       }
       \tl_set:Nx #1 {
         {\tl_item:Nn #1 {1}}
@@ -134,6 +137,86 @@
     {
       \draw_path_close:
     }
+    \l__svg_action_Q_tl
+    {
+      \draw_path_curveto:nnn
+      {
+        \seq_item:Nn #3 {1},
+        \seq_item:Nn #3 {2}
+      }
+      {
+        \seq_item:Nn #3 {1},
+        \seq_item:Nn #3 {2}
+      }
+      {
+        \seq_item:Nn #3 {3},
+        \seq_item:Nn #3 {4}
+      }
+      \tl_set:Nx #1 {
+        {\seq_item:Nn #3 {3}}
+        {\seq_item:Nn #3 {4}}
+      }
+    }
+    \l__svg_action_q_tl
+    {
+      \draw_path_curveto:nnn
+      {
+        \tl_item:Nn #1 {1} + \seq_item:Nn #3 {1},
+        \tl_item:Nn #1 {2} + \seq_item:Nn #3 {2}
+      }
+      {
+        \tl_item:Nn #1 {1} + \seq_item:Nn #3 {1},
+        \tl_item:Nn #1 {2} + \seq_item:Nn #3 {2}
+      }
+      {
+        \tl_item:Nn #1 {1} + \seq_item:Nn #3 {3},
+        \tl_item:Nn #1 {2} + \seq_item:Nn #3 {4}
+      }
+      \tl_set:Nx #1 {
+        {\fp_eval:n {\tl_item:Nn #1 {1} + \seq_item:Nn #3 {3}}}
+        {\fp_eval:n {\tl_item:Nn #1 {2} + \seq_item:Nn #3 {4}}}
+      }
+    }
+    \l__svg_action_C_tl
+    {
+      \draw_path_curveto:nnn
+      {
+        \seq_item:Nn #3 {1},
+        \seq_item:Nn #3 {2}
+      }
+      {
+        \seq_item:Nn #3 {3},
+        \seq_item:Nn #3 {4}
+      }
+      {
+        \seq_item:Nn #3 {5},
+        \seq_item:Nn #3 {6}
+      }
+      \tl_set:Nx #1 {
+        {\seq_item:Nn #3 {5}}
+        {\seq_item:Nn #3 {6}}
+      }
+    }
+    \l__svg_action_c_tl
+    {
+      \draw_path_curveto:nnn
+      {
+        \tl_item:Nn #1 {1} + \seq_item:Nn #3 {1},
+        \tl_item:Nn #1 {2} + \seq_item:Nn #3 {2}
+      }
+      {
+        \tl_item:Nn #1 {1} + \seq_item:Nn #3 {3},
+        \tl_item:Nn #1 {2} + \seq_item:Nn #3 {4}
+      }
+      {
+        \tl_item:Nn #1 {1} + \seq_item:Nn #3 {5},
+        \tl_item:Nn #1 {2} + \seq_item:Nn #3 {6}
+      }
+      \tl_set:Nx #1 {
+        {\fp_eval:n {\tl_item:Nn #1 {1} + \seq_item:Nn #3 {5}}}
+        {\fp_eval:n {\tl_item:Nn #1 {2} + \seq_item:Nn #3 {6}}}
+      }
+    }
   }
 }
 
@@ -146,8 +229,9 @@
   \tl_set:Nn \l__svg_path_tl {#1}
   \tl_set:Nn \l__svg_cpoint_tl {{0}{0}}
 
+  \tl_replace_all:Nnn \l__svg_path_tl {~} {;}
+  
   \tl_map_inline:Nn \l__svg_path_tl {
-
     \tl_if_in:NnTF \l__svg_actions_tl {##1}
     {
       \tl_if_empty:NF \l__svg_point_tl {
@@ -185,6 +269,12 @@
           \tl_set:Nn \l__svg_token_tl {##1}
           \tl_case:Nn \l__svg_token_tl
           {
+            \l__svg_semicolon_tl {
+              \tl_if_empty:NF \l__svg_point_tl {
+                \seq_put_right:NV \l__svg_points_seq \l__svg_point_tl
+              }
+              \tl_clear:N \l__svg_point_tl
+            }
             \l__svg_minus_tl {
               % A minus sign means a new number
               \tl_if_empty:NF \l__svg_point_tl {
@@ -238,6 +328,8 @@
 \ExplSyntaxOn
 \draw_begin:
 \draw_svg:n { M37,17v15H14V17z M50,0H0v50h50z  }
+\draw_svg:n { M0,0Q50,50~ 100,0 }
+\draw_svg:n { M0,0C50,50~ 100,50~ 150,0 }
 \draw_path_use:n {stroke}
 \draw_end:
 \ExplSyntaxOff
