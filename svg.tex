@@ -5,18 +5,20 @@
 
 \ExplSyntaxOn
 
-\tl_new:N \l__svg_point_tl
-\tl_new:N \l__svg_cpoint_tl
-\tl_new:N \l__svg_action_tl
-\tl_new:N \l__svg_token_tl
-\seq_new:N \l__svg_points_seq
+\tl_new:N \l__svg_point_tl % For building a number from the SVG string
+\tl_new:N \l__svg_cpoint_tl % Holds our current point
+\tl_new:N \l__svg_ctrlpt_tl % Holds our current control point
+\tl_new:N \l__svg_action_tl % Holds our current action
+\tl_new:N \l__svg_token_tl % Scratch tl
+\seq_new:N \l__svg_points_seq % Sequence of points from the SVG string
 
-\tl_new:N \l__svg_actions_tl
+\tl_new:N \l__svg_actions_tl % List of possible actions
 \tl_set:Nn \l__svg_actions_tl {MmLlHhVvQqCcSsTtAZz}
 
-\tl_new:N \l__svg_digits_tl
+\tl_new:N \l__svg_digits_tl % List of what a digit is
 \tl_set:Nn \l__svg_digits_tl {0123456789}
 
+% Token lists for separating out the SVG string
 \tl_new:N \l__svg_minus_tl
 \tl_set:Nn \l__svg_minus_tl {-}
 \tl_new:N \l__svg_comma_tl
@@ -26,114 +28,124 @@
 \tl_new:N \l__svg_period_tl
 \tl_set:Nn \l__svg_period_tl {.}
 
+% Token lists of the various actions
 \tl_map_inline:Nn \l__svg_actions_tl
 {
   \tl_new:c {l__svg_action_#1_tl}
   \tl_set:cn {l__svg_action_#1_tl} {#1}
 }
 
+% How many numbers get used up
 \int_new:N \l__svg_points_int
+% Scratch tl
 \tl_new:N \l__svg_tmpa_tl
 
-\cs_new_nopar:Npn \svg_do_action:NNN #1#2#3
+\cs_new_nopar:Npn \svg_do_action:NNNN #1#2#3#4
 {
-
-  \tl_case:Nn #2
+  \tl_case:Nn #3
   {
     \l__svg_action_M_tl
     {
       \draw_path_moveto:n {
-        \seq_item:Nn #3 {1},
-        \seq_item:Nn #3 {2}
+        \seq_item:Nn #4 {1},
+        \seq_item:Nn #4 {2}
       }
       \tl_set:Nx #1 {
-        {\seq_item:Nn #3 {1}}
-        {\seq_item:Nn #3 {2}}
+        {\seq_item:Nn #4 {1}}
+        {\seq_item:Nn #4 {2}}
       }
+      \tl_set_eq:NN #2 #1
       \int_set:Nn \l__svg_points_int {2}
     }
     \l__svg_action_m_tl
     {
       \draw_path_moveto:n {
-        \tl_item:Nn #1 {1} + \seq_item:Nn #3 {1},
-        \tl_item:Nn #1 {2} + \seq_item:Nn #3 {2}
+        \tl_item:Nn #1 {1} + \seq_item:Nn #4 {1},
+        \tl_item:Nn #1 {2} + \seq_item:Nn #4 {2}
       }
       \tl_set:Nx #1 {
-        {\fp_eval:n {\tl_item:Nn #1 {1} + \seq_item:Nn #3 {1}}}
-        {\fp_eval:n {\tl_item:Nn #1 {2} + \seq_item:Nn #3 {2}}}
+        {\fp_eval:n {\tl_item:Nn #1 {1} + \seq_item:Nn #4 {1}}}
+        {\fp_eval:n {\tl_item:Nn #1 {2} + \seq_item:Nn #4 {2}}}
       }
+      \tl_set_eq:NN #2 #1
       \int_set:Nn \l__svg_points_int {2}
     }
     \l__svg_action_L_tl
     {
       \draw_path_lineto:n {
-        \seq_item:Nn #3 {1},
-        \seq_item:Nn #3 {2}
+        \seq_item:Nn #4 {1},
+        \seq_item:Nn #4 {2}
       }
       \tl_set:Nx #1 {
-        {\seq_item:Nn #3 {1}}
-        {\seq_item:Nn #3 {2}}
+        {\seq_item:Nn #4 {1}}
+        {\seq_item:Nn #4 {2}}
       }
+      \tl_set_eq:NN #2 #1
       \int_set:Nn \l__svg_points_int {2}
     }
     \l__svg_action_l_tl
     {
       \draw_path_lineto:n {
-        \tl_item:Nn #1 {1} + \seq_item:Nn #3 {1},
-        \tl_item:Nn #1 {2} + \seq_item:Nn #3 {2}
+        \tl_item:Nn #1 {1} + \seq_item:Nn #4 {1},
+        \tl_item:Nn #1 {2} + \seq_item:Nn #4 {2}
       }
       \tl_set:Nx #1 {
-        {\fp_eval:n {\tl_item:Nn #1 {1} + \seq_item:Nn #3 {1}}}
-        {\fp_eval:n {\tl_item:Nn #1 {2} + \seq_item:Nn #3 {2}}}
+        {\fp_eval:n {\tl_item:Nn #1 {1} + \seq_item:Nn #4 {1}}}
+        {\fp_eval:n {\tl_item:Nn #1 {2} + \seq_item:Nn #4 {2}}}
       }
+      \tl_set_eq:NN #2 #1
       \int_set:Nn \l__svg_points_int {2}
     }
     \l__svg_action_H_tl
     {
       \draw_path_lineto:n {
-        \seq_item:Nn #3 {1},
+        \seq_item:Nn #4 {1},
         \tl_item:Nn #1 {2}
       }
       \tl_set:Nx #1 {
-        {\seq_item:Nn #3 {1}}
+        {\seq_item:Nn #4 {1}}
         {\tl_item:Nn #1 {2}}
       }
+      \tl_set_eq:NN #2 #1
       \int_set:Nn \l__svg_points_int {1}
     }
     \l__svg_action_h_tl
     {
       \draw_path_lineto:n {
-        \tl_item:Nn #1 {1} + \seq_item:Nn #3 {1},
+        \tl_item:Nn #1 {1} + \seq_item:Nn #4 {1},
         \tl_item:Nn #1 {2}
       }
       \tl_set:Nx #1 {
-        {\fp_eval:n {\tl_item:Nn #1 {1} + \seq_item:Nn #3 {1}}}
+        {\fp_eval:n {\tl_item:Nn #1 {1} + \seq_item:Nn #4 {1}}}
         {\fp_eval:n {\tl_item:Nn #1 {2}}}
       }
+      \tl_set_eq:NN #2 #1
       \int_set:Nn \l__svg_points_int {1}
     }
     \l__svg_action_V_tl
     {
       \draw_path_lineto:n {
         \tl_item:Nn #1 {1},
-        \seq_item:Nn #3 {1}
+        \seq_item:Nn #4 {1}
       }
       \tl_set:Nx #1 {
         {\tl_item:Nn #1 {1}}
-        {\seq_item:Nn #3 {1}}
+        {\seq_item:Nn #4 {1}}
       }
+      \tl_set_eq:NN #2 #1
       \int_set:Nn \l__svg_points_int {1}
     }
     \l__svg_action_v_tl
     {
       \draw_path_lineto:n {
         \tl_item:Nn #1 {1},
-        \tl_item:Nn #1 {2} + \seq_item:Nn #3 {1}
+        \tl_item:Nn #1 {2} + \seq_item:Nn #4 {1}
       }
       \tl_set:Nx #1 {
         {\tl_item:Nn #1 {1}}
-        {\fp_eval:n {\tl_item:Nn #1 {2} + \seq_item:Nn #3 {1}}}
+        {\fp_eval:n {\tl_item:Nn #1 {2} + \seq_item:Nn #4 {1}}}
       }
+      \tl_set_eq:NN #2 #1
       \int_set:Nn \l__svg_points_int {1}
     }
     \l__svg_action_Z_tl
@@ -150,20 +162,24 @@
     {
       \draw_path_curveto:nnn
       {
-        \seq_item:Nn #3 {1},
-        \seq_item:Nn #3 {2}
+        \seq_item:Nn #4 {1},
+        \seq_item:Nn #4 {2}
       }
       {
-        \seq_item:Nn #3 {1},
-        \seq_item:Nn #3 {2}
+        \seq_item:Nn #4 {1},
+        \seq_item:Nn #4 {2}
       }
       {
-        \seq_item:Nn #3 {3},
-        \seq_item:Nn #3 {4}
+        \seq_item:Nn #4 {3},
+        \seq_item:Nn #4 {4}
+      }
+      \tl_set:Nx #2 {
+        {2*(\seq_item:Nn #4 {3}) - \seq_item:Nn #4 {1}}
+        {2*(\seq_item:Nn #4 {4}) - \seq_item:Nn #4 {2}}
       }
       \tl_set:Nx #1 {
-        {\seq_item:Nn #3 {3}}
-        {\seq_item:Nn #3 {4}}
+        {\seq_item:Nn #4 {3}}
+        {\seq_item:Nn #4 {4}}
       }
       \int_set:Nn \l__svg_points_int {4}
     }
@@ -171,20 +187,24 @@
     {
       \draw_path_curveto:nnn
       {
-        \tl_item:Nn #1 {1} + \seq_item:Nn #3 {1},
-        \tl_item:Nn #1 {2} + \seq_item:Nn #3 {2}
+        \tl_item:Nn #1 {1} + \seq_item:Nn #4 {1},
+        \tl_item:Nn #1 {2} + \seq_item:Nn #4 {2}
       }
       {
-        \tl_item:Nn #1 {1} + \seq_item:Nn #3 {1},
-        \tl_item:Nn #1 {2} + \seq_item:Nn #3 {2}
+        \tl_item:Nn #1 {1} + \seq_item:Nn #4 {1},
+        \tl_item:Nn #1 {2} + \seq_item:Nn #4 {2}
       }
       {
-        \tl_item:Nn #1 {1} + \seq_item:Nn #3 {3},
-        \tl_item:Nn #1 {2} + \seq_item:Nn #3 {4}
+        \tl_item:Nn #1 {1} + \seq_item:Nn #4 {3},
+        \tl_item:Nn #1 {2} + \seq_item:Nn #4 {4}
+      }
+      \tl_set:Nx #2 {
+        {\fp_eval:n {\tl_item:Nn #1 {1} + 2*(\seq_item:Nn #4 {3}) - \seq_item:Nn #4 {1} }}
+        {\fp_eval:n {\tl_item:Nn #1 {2} + 2*(\seq_item:Nn #4 {4}) - \seq_item:Nn #4 {2} }}
       }
       \tl_set:Nx #1 {
-        {\fp_eval:n {\tl_item:Nn #1 {1} + \seq_item:Nn #3 {3}}}
-        {\fp_eval:n {\tl_item:Nn #1 {2} + \seq_item:Nn #3 {4}}}
+        {\fp_eval:n {\tl_item:Nn #1 {1} + \seq_item:Nn #4 {3}}}
+        {\fp_eval:n {\tl_item:Nn #1 {2} + \seq_item:Nn #4 {4}}}
       }
       \int_set:Nn \l__svg_points_int {4}
     }
@@ -192,20 +212,24 @@
     {
       \draw_path_curveto:nnn
       {
-        \seq_item:Nn #3 {1},
-        \seq_item:Nn #3 {2}
+        \seq_item:Nn #4 {1},
+        \seq_item:Nn #4 {2}
       }
       {
-        \seq_item:Nn #3 {3},
-        \seq_item:Nn #3 {4}
+        \seq_item:Nn #4 {3},
+        \seq_item:Nn #4 {4}
       }
       {
-        \seq_item:Nn #3 {5},
-        \seq_item:Nn #3 {6}
+        \seq_item:Nn #4 {5},
+        \seq_item:Nn #4 {6}
+      }
+      \tl_set:Nx #2 {
+        {2*(\seq_item:Nn #4 {5}) - (\seq_item:Nn #4 {3})}
+        {2*(\seq_item:Nn #4 {6}) - (\seq_item:Nn #4 {4})}
       }
       \tl_set:Nx #1 {
-        {\seq_item:Nn #3 {5}}
-        {\seq_item:Nn #3 {6}}
+        {\seq_item:Nn #4 {5}}
+        {\seq_item:Nn #4 {6}}
       }
       \int_set:Nn \l__svg_points_int {6}
     }
@@ -213,25 +237,129 @@
     {
       \draw_path_curveto:nnn
       {
-        \tl_item:Nn #1 {1} + \seq_item:Nn #3 {1},
-        \tl_item:Nn #1 {2} + \seq_item:Nn #3 {2}
+        \tl_item:Nn #1 {1} + \seq_item:Nn #4 {1},
+        \tl_item:Nn #1 {2} + \seq_item:Nn #4 {2}
       }
       {
-        \tl_item:Nn #1 {1} + \seq_item:Nn #3 {3},
-        \tl_item:Nn #1 {2} + \seq_item:Nn #3 {4}
+        \tl_item:Nn #1 {1} + \seq_item:Nn #4 {3},
+        \tl_item:Nn #1 {2} + \seq_item:Nn #4 {4}
       }
       {
-        \tl_item:Nn #1 {1} + \seq_item:Nn #3 {5},
-        \tl_item:Nn #1 {2} + \seq_item:Nn #3 {6}
+        \tl_item:Nn #1 {1} + \seq_item:Nn #4 {5},
+        \tl_item:Nn #1 {2} + \seq_item:Nn #4 {6}
+      }
+      \tl_set:Nx #2 {
+        {\fp_eval:n {\tl_item:Nn #1 {1} + 2*(\seq_item:Nn #4 {5}) - \seq_item:Nn #4 {3} }}
+        {\fp_eval:n {\tl_item:Nn #1 {2} + 2*(\seq_item:Nn #4 {6}) - \seq_item:Nn #4 {4} }}
       }
       \tl_set:Nx #1 {
-        {\fp_eval:n {\tl_item:Nn #1 {1} + \seq_item:Nn #3 {5}}}
-        {\fp_eval:n {\tl_item:Nn #1 {2} + \seq_item:Nn #3 {6}}}
+        {\fp_eval:n {\tl_item:Nn #1 {1} + \seq_item:Nn #4 {5}}}
+        {\fp_eval:n {\tl_item:Nn #1 {2} + \seq_item:Nn #4 {6}}}
       }
       \int_set:Nn \l__svg_points_int {6}
     }
+    \l__svg_action_T_tl
+    {
+      \draw_path_curveto:nnn
+      {
+        \tl_item:Nn #2 {1},
+        \tl_item:Nn #2 {2}
+      }
+      {
+        \tl_item:Nn #2 {1},
+        \tl_item:Nn #2 {2}
+      }
+      {
+        \seq_item:Nn #4 {1},
+        \seq_item:Nn #4 {2}
+      }
+      \tl_set:Nx #2 {
+        {\fp_eval:n {2*(\seq_item:Nn #4 {1}) - \tl_item:Nn #2 {1}} }
+        {\fp_eval:n {2*(\seq_item:Nn #4 {2}) - \tl_item:Nn #2 {2}} }
+      }
+      \tl_set:Nx #1 {
+        {\seq_item:Nn #4 {1}}
+        {\seq_item:Nn #4 {2}}
+      }
+      \int_set:Nn \l__svg_points_int {2}
+    }
+    \l__svg_action_t_tl
+    {
+      \draw_path_curveto:nnn
+      {
+        \tl_item:Nn #2 {1},
+        \tl_item:Nn #2 {2}
+      }
+      {
+        \tl_item:Nn #2 {1},
+        \tl_item:Nn #2 {2}
+      }
+      {
+        \tl_item:Nn #1 {1} +\seq_item:Nn #4 {1},
+        \tl_item:Nn #1 {2} +\seq_item:Nn #4 {2}
+      }
+      \tl_set:Nx #2 {
+        {\fp_eval:n {2 * (\tl_item:Nn #1 {1} + \seq_item:Nn #4 {1}) - \tl_item:Nn #2 {1}} }
+        {\fp_eval:n {2 * (\tl_item:Nn #1 {2} + \seq_item:Nn #4 {2}) - \tl_item:Nn #2 {2}} }
+      }
+      \tl_set:Nx #1 {
+        {\fp_eval:n {\tl_item:Nn #1 {1} +\seq_item:Nn #4 {1}}}
+        {\fp_eval:n {\tl_item:Nn #1 {2} +\seq_item:Nn #4 {2}}}
+      }
+      \int_set:Nn \l__svg_points_int {2}
+    }
+    \l__svg_action_S_tl
+    {
+      \draw_path_curveto:nnn
+      {
+        \tl_item:Nn #2 {1},
+        \tl_item:Nn #2 {2}
+      }
+      {
+        \seq_item:Nn #4 {1},
+        \seq_item:Nn #4 {2}
+      }
+      {
+        \seq_item:Nn #4 {3},
+        \seq_item:Nn #4 {4}
+      }
+      \tl_set:Nx #2 {
+        {\fp_eval:n {2*(\seq_item:Nn #4 {3}) - \seq_item:Nn #4 {1}} }
+        {\fp_eval:n {2*(\seq_item:Nn #4 {4}) - \seq_item:Nn #4 {2}} }
+      }
+      \tl_set:Nx #1 {
+        {\seq_item:Nn #4 {3}}
+        {\seq_item:Nn #4 {4}}
+      }
+      \int_set:Nn \l__svg_points_int {4}
+    }
+    \l__svg_action_s_tl
+    {
+      \draw_path_curveto:nnn
+      {
+        \tl_item:Nn #2 {1},
+        \tl_item:Nn #2 {2}
+      }
+      {
+        \tl_item:Nn #1 {1} +\seq_item:Nn #4 {1},
+        \tl_item:Nn #1 {2} +\seq_item:Nn #4 {2}
+      }
+      {
+        \tl_item:Nn #1 {1} +\seq_item:Nn #4 {3},
+        \tl_item:Nn #1 {2} +\seq_item:Nn #4 {4}
+      }
+      \tl_set:Nx #2 {
+        {\fp_eval:n {\tl_item:Nn #1 {1} + 2*(\seq_item:Nn #4 {3}) - \seq_item:Nn #4 {1}} }
+        {\fp_eval:n {\tl_item:Nn #1 {2} + 2*(\seq_item:Nn #4 {4}) - \seq_item:Nn #4 {2}} }
+      }
+      \tl_set:Nx #1 {
+        {\fp_eval:n {\tl_item:Nn #1 {1} +\seq_item:Nn #4 {3}} }
+        {\fp_eval:n {\tl_item:Nn #1 {2} +\seq_item:Nn #4 {4}} }
+      }
+      \int_set:Nn \l__svg_points_int {4}
+    }
   }
-  \prg_replicate:nn {\l__svg_points_int} {\seq_pop_left:NN #3 \l__svg_tmpa_tl}
+  \prg_replicate:nn {\l__svg_points_int} {\seq_pop_left:NN #4 \l__svg_tmpa_tl}
 }
 
 \cs_new_nopar:Npn \draw_svg:n #1
@@ -239,9 +367,11 @@
   \tl_clear:N \l__svg_point_tl
   \tl_clear:N \l__svg_action_tl
   \tl_clear:N \l__svg_cpoint_tl
+  \tl_clear:N \l__svg_ctrlpt_tl
   \seq_clear:N \l__svg_points_seq
   \tl_set:Nn \l__svg_path_tl {#1}
   \tl_set:Nn \l__svg_cpoint_tl {{0}{0}}
+  \tl_set:Nn \l__svg_ctrlpt_tl {{0}{0}}
 
   \tl_replace_all:Nnn \l__svg_path_tl {~} {;}
   
@@ -258,7 +388,7 @@
           \seq_if_empty_p:N \l__svg_points_seq
         }
         {
-          \svg_do_action:NNN \l__svg_cpoint_tl \l__svg_action_tl \l__svg_points_seq
+          \svg_do_action:NNNN \l__svg_cpoint_tl \l__svg_ctrlpt_tl \l__svg_action_tl \l__svg_points_seq
         }
       }
 
@@ -339,7 +469,7 @@
       \seq_if_empty_p:N \l__svg_points_seq
     }
     {
-      \svg_do_action:NNN \l__svg_cpoint_tl \l__svg_action_tl \l__svg_points_seq
+      \svg_do_action:NNNN \l__svg_cpoint_tl \l__svg_ctrlpt_tl \l__svg_action_tl \l__svg_points_seq
     }
   }
 
@@ -353,7 +483,8 @@
 \draw_begin:
 \draw_svg:n { M37,17v15H14V17z M50,0H0v50h50z  }
 \draw_svg:n { M0,0Q50,50~ 100,0~ 150,-50~ 200,0 }
-\draw_svg:n { M0,0C50,50~ 100,50~ 150,0 }
+\draw_svg:n { M0,0C50,50~ 100,50~ 150,0 S 250,-50~ 300,0 }
+\draw_svg:n { M0,-50c50,50~ 100,50~ 150,0 s 100,-50~ 150,0 }
 \draw_path_use:n {stroke}
 \draw_end:
 \ExplSyntaxOff
