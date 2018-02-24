@@ -1,0 +1,626 @@
+\usepackage{expl3}
+\usepackage{l3draw}
+
+\ProvidesExplPackage {ltx3svg} {2018/02/24} {v0.1} {Convert SVG to l3draw syntax}
+
+\tl_new:N \l__svg_point_tl % For building a number from the SVG string
+\tl_new:N \l__svg_cpoint_tl % Holds our current point
+\tl_new:N \l__svg_ctrlpt_tl % Holds our current control point
+\tl_new:N \l__svg_action_tl % Holds our current action
+\tl_new:N \l__svg_token_tl % Scratch tl
+\seq_new:N \l__svg_points_seq % Sequence of points from the SVG string
+
+\tl_new:N \l__svg_actions_tl % List of possible actions
+\tl_set:Nn \l__svg_actions_tl {MmLlHhVvQqCcSsTtAaZz}
+
+\tl_new:N \l__svg_digits_tl % List of what a digit is
+\tl_set:Nn \l__svg_digits_tl {0123456789}
+
+% Token lists for separating out the SVG string
+\tl_new:N \l__svg_minus_tl
+\tl_set:Nn \l__svg_minus_tl {-}
+\tl_new:N \l__svg_comma_tl
+\tl_set:Nn \l__svg_comma_tl {,}
+\tl_new:N \l__svg_semicolon_tl
+\tl_set:Nn \l__svg_semicolon_tl {;}
+\tl_new:N \l__svg_period_tl
+\tl_set:Nn \l__svg_period_tl {.}
+
+% Token lists of the various actions
+\tl_map_inline:Nn \l__svg_actions_tl
+{
+  \tl_new:c {l__svg_action_#1_tl}
+  \tl_set:cn {l__svg_action_#1_tl} {#1}
+}
+
+% How many numbers get used up
+\int_new:N \l__svg_points_int
+% Scratch tl
+\tl_new:N \l__svg_tmpa_tl
+
+% fp for arc calculations
+\fp_new:N \l__svg_p_fp
+\fp_new:N \l__svg_q_fp
+\fp_new:N \l__svg_l_fp
+\fp_new:N \l__svg_theta_fp
+\fp_new:N \l__svg_phi_fp
+
+\cs_new_nopar:Npn \svg_do_action:NNNN #1#2#3#4
+{
+  \tl_case:Nn #3
+  {
+    \l__svg_action_M_tl
+    {
+      \draw_path_moveto:n {
+        \seq_item:Nn #4 {1},
+        \seq_item:Nn #4 {2}
+      }
+      \tl_set:Nx #1 {
+        {\seq_item:Nn #4 {1}}
+        {\seq_item:Nn #4 {2}}
+      }
+      \tl_set_eq:NN #2 #1
+      \int_set:Nn \l__svg_points_int {2}
+    }
+    \l__svg_action_m_tl
+    {
+      \draw_path_moveto:n {
+        \tl_item:Nn #1 {1} + \seq_item:Nn #4 {1},
+        \tl_item:Nn #1 {2} + \seq_item:Nn #4 {2}
+      }
+      \tl_set:Nx #1 {
+        {\fp_eval:n {\tl_item:Nn #1 {1} + \seq_item:Nn #4 {1}}}
+        {\fp_eval:n {\tl_item:Nn #1 {2} + \seq_item:Nn #4 {2}}}
+      }
+      \tl_set_eq:NN #2 #1
+      \int_set:Nn \l__svg_points_int {2}
+    }
+    \l__svg_action_L_tl
+    {
+      \draw_path_lineto:n {
+        \seq_item:Nn #4 {1},
+        \seq_item:Nn #4 {2}
+      }
+      \tl_set:Nx #1 {
+        {\seq_item:Nn #4 {1}}
+        {\seq_item:Nn #4 {2}}
+      }
+      \tl_set_eq:NN #2 #1
+      \int_set:Nn \l__svg_points_int {2}
+    }
+    \l__svg_action_l_tl
+    {
+      \draw_path_lineto:n {
+        \tl_item:Nn #1 {1} + \seq_item:Nn #4 {1},
+        \tl_item:Nn #1 {2} + \seq_item:Nn #4 {2}
+      }
+      \tl_set:Nx #1 {
+        {\fp_eval:n {\tl_item:Nn #1 {1} + \seq_item:Nn #4 {1}}}
+        {\fp_eval:n {\tl_item:Nn #1 {2} + \seq_item:Nn #4 {2}}}
+      }
+      \tl_set_eq:NN #2 #1
+      \int_set:Nn \l__svg_points_int {2}
+    }
+    \l__svg_action_H_tl
+    {
+      \draw_path_lineto:n {
+        \seq_item:Nn #4 {1},
+        \tl_item:Nn #1 {2}
+      }
+      \tl_set:Nx #1 {
+        {\seq_item:Nn #4 {1}}
+        {\tl_item:Nn #1 {2}}
+      }
+      \tl_set_eq:NN #2 #1
+      \int_set:Nn \l__svg_points_int {1}
+    }
+    \l__svg_action_h_tl
+    {
+      \draw_path_lineto:n {
+        \tl_item:Nn #1 {1} + \seq_item:Nn #4 {1},
+        \tl_item:Nn #1 {2}
+      }
+      \tl_set:Nx #1 {
+        {\fp_eval:n {\tl_item:Nn #1 {1} + \seq_item:Nn #4 {1}}}
+        {\fp_eval:n {\tl_item:Nn #1 {2}}}
+      }
+      \tl_set_eq:NN #2 #1
+      \int_set:Nn \l__svg_points_int {1}
+    }
+    \l__svg_action_V_tl
+    {
+      \draw_path_lineto:n {
+        \tl_item:Nn #1 {1},
+        \seq_item:Nn #4 {1}
+      }
+      \tl_set:Nx #1 {
+        {\tl_item:Nn #1 {1}}
+        {\seq_item:Nn #4 {1}}
+      }
+      \tl_set_eq:NN #2 #1
+      \int_set:Nn \l__svg_points_int {1}
+    }
+    \l__svg_action_v_tl
+    {
+      \draw_path_lineto:n {
+        \tl_item:Nn #1 {1},
+        \tl_item:Nn #1 {2} + \seq_item:Nn #4 {1}
+      }
+      \tl_set:Nx #1 {
+        {\tl_item:Nn #1 {1}}
+        {\fp_eval:n {\tl_item:Nn #1 {2} + \seq_item:Nn #4 {1}}}
+      }
+      \tl_set_eq:NN #2 #1
+      \int_set:Nn \l__svg_points_int {1}
+    }
+    \l__svg_action_Z_tl
+    {
+      \draw_path_close:
+      \int_set:Nn \l__svg_points_int {0}
+    }
+    \l__svg_action_z_tl
+    {
+      \draw_path_close:
+      \int_set:Nn \l__svg_points_int {0}
+    }
+    \l__svg_action_Q_tl
+    {
+      \draw_path_curveto:nnn
+      {
+        \seq_item:Nn #4 {1},
+        \seq_item:Nn #4 {2}
+      }
+      {
+        \seq_item:Nn #4 {1},
+        \seq_item:Nn #4 {2}
+      }
+      {
+        \seq_item:Nn #4 {3},
+        \seq_item:Nn #4 {4}
+      }
+      \tl_set:Nx #2 {
+        {2*(\seq_item:Nn #4 {3}) - \seq_item:Nn #4 {1}}
+        {2*(\seq_item:Nn #4 {4}) - \seq_item:Nn #4 {2}}
+      }
+      \tl_set:Nx #1 {
+        {\seq_item:Nn #4 {3}}
+        {\seq_item:Nn #4 {4}}
+      }
+      \int_set:Nn \l__svg_points_int {4}
+    }
+    \l__svg_action_q_tl
+    {
+      \draw_path_curveto:nnn
+      {
+        \tl_item:Nn #1 {1} + \seq_item:Nn #4 {1},
+        \tl_item:Nn #1 {2} + \seq_item:Nn #4 {2}
+      }
+      {
+        \tl_item:Nn #1 {1} + \seq_item:Nn #4 {1},
+        \tl_item:Nn #1 {2} + \seq_item:Nn #4 {2}
+      }
+      {
+        \tl_item:Nn #1 {1} + \seq_item:Nn #4 {3},
+        \tl_item:Nn #1 {2} + \seq_item:Nn #4 {4}
+      }
+      \tl_set:Nx #2 {
+        {\fp_eval:n {\tl_item:Nn #1 {1} + 2*(\seq_item:Nn #4 {3}) - \seq_item:Nn #4 {1} }}
+        {\fp_eval:n {\tl_item:Nn #1 {2} + 2*(\seq_item:Nn #4 {4}) - \seq_item:Nn #4 {2} }}
+      }
+      \tl_set:Nx #1 {
+        {\fp_eval:n {\tl_item:Nn #1 {1} + \seq_item:Nn #4 {3}}}
+        {\fp_eval:n {\tl_item:Nn #1 {2} + \seq_item:Nn #4 {4}}}
+      }
+      \int_set:Nn \l__svg_points_int {4}
+    }
+    \l__svg_action_C_tl
+    {
+      \draw_path_curveto:nnn
+      {
+        \seq_item:Nn #4 {1},
+        \seq_item:Nn #4 {2}
+      }
+      {
+        \seq_item:Nn #4 {3},
+        \seq_item:Nn #4 {4}
+      }
+      {
+        \seq_item:Nn #4 {5},
+        \seq_item:Nn #4 {6}
+      }
+      \tl_set:Nx #2 {
+        {2*(\seq_item:Nn #4 {5}) - (\seq_item:Nn #4 {3})}
+        {2*(\seq_item:Nn #4 {6}) - (\seq_item:Nn #4 {4})}
+      }
+      \tl_set:Nx #1 {
+        {\seq_item:Nn #4 {5}}
+        {\seq_item:Nn #4 {6}}
+      }
+      \int_set:Nn \l__svg_points_int {6}
+    }
+    \l__svg_action_c_tl
+    {
+      \draw_path_curveto:nnn
+      {
+        \tl_item:Nn #1 {1} + \seq_item:Nn #4 {1},
+        \tl_item:Nn #1 {2} + \seq_item:Nn #4 {2}
+      }
+      {
+        \tl_item:Nn #1 {1} + \seq_item:Nn #4 {3},
+        \tl_item:Nn #1 {2} + \seq_item:Nn #4 {4}
+      }
+      {
+        \tl_item:Nn #1 {1} + \seq_item:Nn #4 {5},
+        \tl_item:Nn #1 {2} + \seq_item:Nn #4 {6}
+      }
+      \tl_set:Nx #2 {
+        {\fp_eval:n {\tl_item:Nn #1 {1} + 2*(\seq_item:Nn #4 {5}) - \seq_item:Nn #4 {3} }}
+        {\fp_eval:n {\tl_item:Nn #1 {2} + 2*(\seq_item:Nn #4 {6}) - \seq_item:Nn #4 {4} }}
+      }
+      \tl_set:Nx #1 {
+        {\fp_eval:n {\tl_item:Nn #1 {1} + \seq_item:Nn #4 {5}}}
+        {\fp_eval:n {\tl_item:Nn #1 {2} + \seq_item:Nn #4 {6}}}
+      }
+      \int_set:Nn \l__svg_points_int {6}
+    }
+    \l__svg_action_T_tl
+    {
+      \draw_path_curveto:nnn
+      {
+        \tl_item:Nn #2 {1},
+        \tl_item:Nn #2 {2}
+      }
+      {
+        \tl_item:Nn #2 {1},
+        \tl_item:Nn #2 {2}
+      }
+      {
+        \seq_item:Nn #4 {1},
+        \seq_item:Nn #4 {2}
+      }
+      \tl_set:Nx #2 {
+        {\fp_eval:n {2*(\seq_item:Nn #4 {1}) - \tl_item:Nn #2 {1}} }
+        {\fp_eval:n {2*(\seq_item:Nn #4 {2}) - \tl_item:Nn #2 {2}} }
+      }
+      \tl_set:Nx #1 {
+        {\seq_item:Nn #4 {1}}
+        {\seq_item:Nn #4 {2}}
+      }
+      \int_set:Nn \l__svg_points_int {2}
+    }
+    \l__svg_action_t_tl
+    {
+      \draw_path_curveto:nnn
+      {
+        \tl_item:Nn #2 {1},
+        \tl_item:Nn #2 {2}
+      }
+      {
+        \tl_item:Nn #2 {1},
+        \tl_item:Nn #2 {2}
+      }
+      {
+        \tl_item:Nn #1 {1} +\seq_item:Nn #4 {1},
+        \tl_item:Nn #1 {2} +\seq_item:Nn #4 {2}
+      }
+      \tl_set:Nx #2 {
+        {\fp_eval:n {2 * (\tl_item:Nn #1 {1} + \seq_item:Nn #4 {1}) - \tl_item:Nn #2 {1}} }
+        {\fp_eval:n {2 * (\tl_item:Nn #1 {2} + \seq_item:Nn #4 {2}) - \tl_item:Nn #2 {2}} }
+      }
+      \tl_set:Nx #1 {
+        {\fp_eval:n {\tl_item:Nn #1 {1} +\seq_item:Nn #4 {1}}}
+        {\fp_eval:n {\tl_item:Nn #1 {2} +\seq_item:Nn #4 {2}}}
+      }
+      \int_set:Nn \l__svg_points_int {2}
+    }
+    \l__svg_action_S_tl
+    {
+      \draw_path_curveto:nnn
+      {
+        \tl_item:Nn #2 {1},
+        \tl_item:Nn #2 {2}
+      }
+      {
+        \seq_item:Nn #4 {1},
+        \seq_item:Nn #4 {2}
+      }
+      {
+        \seq_item:Nn #4 {3},
+        \seq_item:Nn #4 {4}
+      }
+      \tl_set:Nx #2 {
+        {\fp_eval:n {2*(\seq_item:Nn #4 {3}) - \seq_item:Nn #4 {1}} }
+        {\fp_eval:n {2*(\seq_item:Nn #4 {4}) - \seq_item:Nn #4 {2}} }
+      }
+      \tl_set:Nx #1 {
+        {\seq_item:Nn #4 {3}}
+        {\seq_item:Nn #4 {4}}
+      }
+      \int_set:Nn \l__svg_points_int {4}
+    }
+    \l__svg_action_s_tl
+    {
+      \draw_path_curveto:nnn
+      {
+        \tl_item:Nn #2 {1},
+        \tl_item:Nn #2 {2}
+      }
+      {
+        \tl_item:Nn #1 {1} +\seq_item:Nn #4 {1},
+        \tl_item:Nn #1 {2} +\seq_item:Nn #4 {2}
+      }
+      {
+        \tl_item:Nn #1 {1} +\seq_item:Nn #4 {3},
+        \tl_item:Nn #1 {2} +\seq_item:Nn #4 {4}
+      }
+      \tl_set:Nx #2 {
+        {\fp_eval:n {\tl_item:Nn #1 {1} + 2*(\seq_item:Nn #4 {3}) - \seq_item:Nn #4 {1}} }
+        {\fp_eval:n {\tl_item:Nn #1 {2} + 2*(\seq_item:Nn #4 {4}) - \seq_item:Nn #4 {2}} }
+      }
+      \tl_set:Nx #1 {
+        {\fp_eval:n {\tl_item:Nn #1 {1} +\seq_item:Nn #4 {3}} }
+        {\fp_eval:n {\tl_item:Nn #1 {2} +\seq_item:Nn #4 {4}} }
+      }
+      \int_set:Nn \l__svg_points_int {4}
+    }
+    \l__svg_action_A_tl
+    {
+      \fp_set:Nn \l__svg_p_fp
+      {
+        (\seq_item:Nn #4 {6} - \tl_item:Nn #1 {1} )/(\seq_item:Nn #4 {1})
+      }
+      \fp_set:Nn \l__svg_q_fp
+      {
+        (\seq_item:Nn #4 {7} - \tl_item:Nn #1 {2} )/(\seq_item:Nn #4 {2})
+      }
+      \fp_set:Nn \l__svg_l_fp
+      {
+        (\l__svg_p_fp * \l__svg_p_fp + \l__svg_q_fp * \l__svg_q_fp)/4
+      }
+      \fp_set:Nn \l__svg_theta_fp
+      {
+        2*atan(1/sqrt(1/\l__svg_l_fp - 1)) * 180 / pi
+      }
+      \fp_set:Nn \l__svg_phi_fp
+      {
+        atan (( \l__svg_q_fp + \l__svg_p_fp * sqrt(1/\l__svg_l_fp -1) ) /
+        ( \l__svg_p_fp - \l__svg_q_fp * sqrt(1/\l__svg_l_fp -1) )) * 180 / pi
+      }
+      \int_compare:nTF { \seq_item:Nn #4 {5} == 1 }
+      {
+        % Clockwise, so want theta < 0
+        \fp_compare:nT {\l__svg_theta_fp > 0 }
+        {
+          \fp_set:Nn \l__svg_theta_fp { \l__svg_theta_fp - 360 }
+        }
+      }
+      {
+        % Anti-clockwise, so want theta > 0
+        \fp_compare:nT {\l__svg_theta_fp < 0 }
+        {
+          \fp_set:Nn \l__svg_theta_fp { \l__svg_theta_fp + 360 }
+        }
+      }
+      \int_compare:nTF { \seq_item:Nn #4 {4} == 1 }
+      {
+        % Large arc,
+        \fp_compare:nTF {\l__svg_theta_fp > 0}
+        {
+          \fp_set:Nn \l__svg_theta_fp { 360 - \l__svg_theta_fp }
+          \fp_set:Nn \l__svg_phi_fp {\l__svg_phi_fp + 180}
+        }
+        {
+          \fp_set:Nn \l__svg_theta_fp { - \l__svg_theta_fp - 360 }
+          \fp_set:Nn \l__svg_phi_fp {\l__svg_phi_fp + 180}
+        }
+      }
+      \fp_set:Nn \l__svg_theta_fp { \l__svg_phi_fp + \l__svg_theta_fp }
+      \draw_path_arc:nnnn
+      { % Start angle
+        \l__svg_phi_fp
+      }
+      { % End angle
+        \l__svg_theta_fp
+      }
+      { % x-axis
+        \seq_item:Nn #4 {1}
+      }
+      { % y-axis
+        \seq_item:Nn #4 {2}
+      }
+      \tl_set:Nx #1 {
+        {\seq_item:Nn #4 {6}}
+        {\seq_item:Nn #4 {7}}
+      }
+      \tl_set_eq:NN #2 #1
+      \int_set:Nn \l__svg_points_int {7}
+    }
+    \l__svg_action_a_tl
+    {
+      \fp_set:Nn \l__svg_p_fp
+      {
+        (\seq_item:Nn #4 {6} )/(\seq_item:Nn #4 {1})
+      }
+      \fp_set:Nn \l__svg_q_fp
+      {
+        (\seq_item:Nn #4 {7} )/(\seq_item:Nn #4 {2})
+      }
+      \fp_set:Nn \l__svg_l_fp
+      {
+        (\l__svg_p_fp * \l__svg_p_fp + \l__svg_q_fp * \l__svg_q_fp)/4
+      }
+      \fp_set:Nn \l__svg_theta_fp
+      {
+        2*atan(1/sqrt(1/\l__svg_l_fp - 1)) * 180 / pi
+      }
+      \fp_set:Nn \l__svg_phi_fp
+      {
+        atan (( \l__svg_q_fp + \l__svg_p_fp * sqrt(1/\l__svg_l_fp -1) ) /
+        ( \l__svg_p_fp - \l__svg_q_fp * sqrt(1/\l__svg_l_fp -1) )) * 180 / pi
+      }
+      \int_compare:nTF { \seq_item:Nn #4 {5} == 1 }
+      {
+        % Clockwise, so want theta < 0
+        \fp_compare:nT {\l__svg_theta_fp > 0 }
+        {
+          \fp_set:Nn \l__svg_theta_fp { \l__svg_theta_fp - 360 }
+        }
+      }
+      {
+        % Anti-clockwise, so want theta > 0
+        \fp_compare:nT {\l__svg_theta_fp < 0 }
+        {
+          \fp_set:Nn \l__svg_theta_fp { \l__svg_theta_fp + 360 }
+        }
+      }
+      \int_compare:nTF { \seq_item:Nn #4 {4} == 1 }
+      {
+        % Large arc,
+        \fp_compare:nTF {\l__svg_theta_fp > 0}
+        {
+          \fp_set:Nn \l__svg_theta_fp { 360 - \l__svg_theta_fp }
+          \fp_set:Nn \l__svg_phi_fp {\l__svg_phi_fp + 180}
+        }
+        {
+          \fp_set:Nn \l__svg_theta_fp { - \l__svg_theta_fp - 360 }
+          \fp_set:Nn \l__svg_phi_fp {\l__svg_phi_fp + 180}
+        }
+      }
+      \fp_set:Nn \l__svg_theta_fp { \l__svg_phi_fp + \l__svg_theta_fp }
+      \draw_path_arc:nnnn
+      { % Start angle
+        \l__svg_phi_fp
+      }
+      { % End angle
+        \l__svg_theta_fp
+      }
+      { % x-axis
+        \seq_item:Nn #4 {1}
+      }
+      { % y-axis
+        \seq_item:Nn #4 {2}
+      }
+      \tl_set:Nx #1 {
+        { \fp_eval:n {\seq_item:Nn #4 {6} + \tl_item:Nn #1 {1}}}
+        { \fp_eval:n {\seq_item:Nn #4 {7} + \tl_item:Nn #1 {2}}}
+      }
+      \tl_set_eq:NN #2 #1
+      \int_set:Nn \l__svg_points_int {7}
+    }
+  }
+  \prg_replicate:nn {\l__svg_points_int} {\seq_pop_left:NN #4 \l__svg_tmpa_tl}
+}
+
+\cs_new_nopar:Npn \draw_svg:n #1
+{
+  \tl_clear:N \l__svg_point_tl
+  \tl_clear:N \l__svg_action_tl
+  \tl_clear:N \l__svg_cpoint_tl
+  \tl_clear:N \l__svg_ctrlpt_tl
+  \seq_clear:N \l__svg_points_seq
+  \tl_set:Nn \l__svg_path_tl {#1}
+  \tl_set:Nn \l__svg_cpoint_tl {{0}{0}}
+  \tl_set:Nn \l__svg_ctrlpt_tl {{0}{0}}
+
+  \tl_replace_all:Nnn \l__svg_path_tl {~} {;}
+  
+  \tl_map_inline:Nn \l__svg_path_tl {
+    \tl_if_in:NnTF \l__svg_actions_tl {##1}
+    {
+      \tl_if_empty:NF \l__svg_point_tl {
+        \seq_put_right:NV \l__svg_points_seq \l__svg_point_tl
+      }
+      % Got an action, so apply previous action and reset state
+      \tl_if_empty:NF \l__svg_action_tl
+      {
+        \bool_do_until:nn {
+          \seq_if_empty_p:N \l__svg_points_seq
+        }
+        {
+          \svg_do_action:NNNN \l__svg_cpoint_tl \l__svg_ctrlpt_tl \l__svg_action_tl \l__svg_points_seq
+        }
+      }
+
+      % Set the new action
+      \tl_set:Nn \l__svg_action_tl {##1}
+      % Clear the current number
+      \tl_clear:N \l__svg_point_tl
+      % Clear the sequence of points
+      \seq_clear:N \l__svg_points_seq
+    }
+    {
+      \tl_if_in:NnTF \l__svg_digits_tl {##1}
+      {
+        % Got a digit, so append to current number
+        \tl_put_right:Nn \l__svg_point_tl {##1}
+      }
+      {
+
+        \tl_if_blank:nTF {##1} {
+          % Got a blank, so if we have a point, add it to the list
+          \tl_if_empty:NF \l__svg_point_tl {
+            \seq_put_right:NV \l__svg_points_seq \l__svg_point_tl
+          }
+          \tl_clear:N \l__svg_point_tl
+        }
+        {
+          \tl_set:Nn \l__svg_token_tl {##1}
+          \tl_case:Nn \l__svg_token_tl
+          {
+            \l__svg_semicolon_tl {
+              \tl_if_empty:NF \l__svg_point_tl {
+                \seq_put_right:NV \l__svg_points_seq \l__svg_point_tl
+              }
+              \tl_clear:N \l__svg_point_tl
+            }
+            \l__svg_minus_tl {
+              % A minus sign means a new number
+              \tl_if_empty:NF \l__svg_point_tl {
+                \seq_put_right:NV \l__svg_points_seq \l__svg_point_tl
+              }
+              \tl_set:Nn \l__svg_point_tl {-}
+            }
+            \l__svg_comma_tl {
+              % A comma means a new number
+              \tl_if_empty:NF \l__svg_point_tl {
+                \seq_put_right:NV \l__svg_points_seq \l__svg_point_tl
+              }
+              \tl_clear:N \l__svg_point_tl
+            }
+            \l__svg_period_tl {
+              % A dot could mean a new number or a decimal
+              %
+              % Do we already have a dot in the current number?
+              \tl_if_in:NnTF \l__svg_point_tl {.}
+              {
+                % Yes, so a dot means a new number
+                \tl_if_empty:NF \l__svg_point_tl {
+                  \seq_put_right:NV \l__svg_points_seq \l__svg_point_tl
+                }
+                \tl_set:Nn \l__svg_point_tl {.}
+              }
+              {
+                % No, so we're adding this to the current number
+                \tl_put_right:Nn \l__svg_point_tl {.}
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+  \tl_if_empty:NF \l__svg_point_tl {
+    \seq_put_right:NV \l__svg_points_seq \l__svg_point_tl
+  }
+  \tl_if_empty:NF \l__svg_action_tl
+  {
+    \bool_do_until:nn {
+      \seq_if_empty_p:N \l__svg_points_seq
+    }
+    {
+      \svg_do_action:NNNN \l__svg_cpoint_tl \l__svg_ctrlpt_tl \l__svg_action_tl \l__svg_points_seq
+    }
+  }
+
+}
+
